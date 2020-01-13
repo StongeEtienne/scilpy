@@ -30,6 +30,7 @@ References:
 
 EPS = 0.0
 
+
 def buildArgsParser():
     p = argparse.ArgumentParser(description=DESCRIPTION, epilog=EPILOG,
                                 formatter_class=argparse.RawTextHelpFormatter)
@@ -82,9 +83,6 @@ def main():
 
     nb_vts_in_wm = np.count_nonzero(vts_mask)
     nb_vts_in_wm_reached = np.count_nonzero(vts_scalar[vts_mask] >= 1.0)
-    #print(vts_scalar.max())
-    #print(nb_vts_in_wm)
-    #print(nb_vts_in_wm_reached)
 
     if args.pos_curv:
         curv_normal_mtx = mesh.mean_curvature_normal_matrix(area_weighted=True)

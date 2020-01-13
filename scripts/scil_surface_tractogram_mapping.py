@@ -7,8 +7,7 @@ import logging
 import nibabel as nib
 import numpy as np
 from scipy.spatial.ckdtree import cKDTree
-from scilpy.io.utils import (
-    add_overwrite_arg, assert_inputs_exist, assert_outputs_exist)
+from scilpy.io.utils import add_overwrite_arg
 
 from dipy.utils.optpkg import optional_package
 from trimeshpy import vtk_util as vtk_u

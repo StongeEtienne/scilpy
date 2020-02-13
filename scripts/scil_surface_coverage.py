@@ -44,15 +44,16 @@ def buildArgsParser():
 
     p.add_argument('surface_mask')
 
+    p.add_argument('output')
+
     p.add_argument('--surface_type_to_use', nargs='+', type=int, default=[1])
 
     p.add_argument('--coverage_is_vts', action='store_true')
 
-    p.add_argument('--norm_to', type=float,  default=1000000)
+    p.add_argument('--norm_to', nargs='+', type=float,  default=[1000000])
 
-    p.add_argument('--pos_curv', action='store_true')
-    p.add_argument('--neg_curv', action='store_true')
-    p.add_argument('--pos_curv_ratio', action='store_true')
+    p.add_argument('--print', action='store_true')
+
     add_overwrite_arg(p)
     return p
 
@@ -63,56 +64,66 @@ def main():
     logging.basicConfig(level=logging.INFO)
 
     mesh = TriMesh_Vtk(args.surface, None)
-
     if args.coverage_is_vts:
-        vts_scalar = np.load(args.coverage_map).astype(np.float)
+        init_scalar = np.load(args.coverage_map).astype(np.float)
     else:
         tri_scalar = np.load(args.coverage_map).astype(np.float)
         tv_map = mesh.triangle_vertex_map()
-        vts_scalar = np.squeeze(np.asarray(tv_map.T.dot(tri_scalar.T)))
+        init_scalar = np.squeeze(np.asarray(tv_map.T.dot(tri_scalar.T)))  # /3.0
 
-    vts_scalar *= args.norm_to/vts_scalar.sum()
+    init_scalar_sum = float(init_scalar.sum())
 
-    surface_type = np.load(args.surface_type)
-    surface_mask_type = np.zeros_like(surface_type, dtype=np.bool)
-    for i in args.surface_type_to_use:
-        surface_mask_type = np.logical_or(surface_mask_type, surface_type == i)
+    # for each normalization term (Streamlines count)
+    if args.print:
+        print(("norm", " :", "coverage", "pos_coverage", "neg_coverage", "global pos_ratio"))
 
-    surface_mask = np.load(args.surface_mask)
-    vts_mask = np.logical_and(surface_mask_type, surface_mask)
 
-    nb_vts_in_wm = np.count_nonzero(vts_mask)
-    nb_vts_in_wm_reached = np.count_nonzero(vts_scalar[vts_mask] >= 1.0)
+    results = np.zeros([len(args.norm_to), 5])
 
-    if args.pos_curv:
+    index = 0
+    for norm_v in args.norm_to:
+        vts_scalar = init_scalar*norm_v/init_scalar_sum
+
+        surface_type = np.load(args.surface_type)
+        surface_mask_type = np.zeros_like(surface_type, dtype=np.bool)
+        for i in args.surface_type_to_use:
+            surface_mask_type = np.logical_or(surface_mask_type, surface_type == i)
+
+        surface_mask = np.load(args.surface_mask)
+        vts_mask = np.logical_and(surface_mask_type, surface_mask)
+
+        nb_vts_in_wm = np.count_nonzero(vts_mask)
+        nb_vts_in_wm_reached = np.count_nonzero(vts_scalar[vts_mask] >= 1.0)
+
+        # coverage
+        coverage = float(nb_vts_in_wm_reached) / float(nb_vts_in_wm)
+
         curv_normal_mtx = mesh.mean_curvature_normal_matrix(area_weighted=True)
         direction = curv_normal_mtx.dot(mesh.get_vertices())
         normal_dir = mesh.vertices_normal(normalize=False)
         pos_curv = dot(direction, normal_dir, axis=1) < EPS
+        neg_curv = dot(direction, normal_dir, axis=1) > EPS
+
         nb_vts_in_pos_curv = np.count_nonzero(np.logical_and(vts_mask, pos_curv))
         nb_vts_in_pos_curv_reached = np.count_nonzero(vts_scalar[np.logical_and(vts_mask, pos_curv)] >= 1.0)
-        print(float(nb_vts_in_pos_curv_reached)/float(nb_vts_in_pos_curv))
 
-    elif args.neg_curv:
-        curv_normal_mtx = mesh.mean_curvature_normal_matrix(area_weighted=True)
-        direction = curv_normal_mtx.dot(mesh.get_vertices())
-        normal_dir = mesh.vertices_normal(normalize=False)
-        neg_curv = dot(direction, normal_dir, axis=1) > EPS
         nb_vts_in_neg_curv = np.count_nonzero(np.logical_and(vts_mask, neg_curv))
         nb_vts_in_neg_curv_reached = np.count_nonzero(vts_scalar[np.logical_and(vts_mask, neg_curv)] >= 1.0)
-        print(float(nb_vts_in_neg_curv_reached)/float(nb_vts_in_neg_curv))
 
-    elif args.pos_curv_ratio:
-        curv_normal_mtx = mesh.mean_curvature_normal_matrix(area_weighted=True)
-        direction = curv_normal_mtx.dot(mesh.get_vertices())
-        normal_dir = mesh.vertices_normal(normalize=False)
-        pos_curv = dot(direction, normal_dir, axis=1) < EPS
-        neg_curv = dot(direction, normal_dir, axis=1) > EPS
-        nb_vts_in_pos_curv_reached = vts_scalar[np.logical_and(vts_mask, pos_curv)].sum()
-        nb_vts_in_neg_curv_reached = vts_scalar[np.logical_and(vts_mask, neg_curv)].sum()
-        print(float(nb_vts_in_pos_curv_reached)/float(nb_vts_in_pos_curv_reached+nb_vts_in_neg_curv_reached))
-    else:
-        print(float(nb_vts_in_wm_reached) / float(nb_vts_in_wm))
+        pos_coverage= float(nb_vts_in_pos_curv_reached)/float(nb_vts_in_pos_curv)
+        neg_coverage = float(nb_vts_in_neg_curv_reached)/float(nb_vts_in_neg_curv)
+
+        nb_pos_curv = vts_scalar[np.logical_and(vts_mask, pos_curv)].sum()
+        nb_neg_curv = vts_scalar[np.logical_and(vts_mask, neg_curv)].sum()
+        pos_ratio = float(nb_pos_curv)/float(nb_pos_curv+nb_neg_curv)
+
+        if args.print:
+            print((norm_v, " :", coverage, pos_coverage, neg_coverage, pos_ratio))
+
+        results[index] = [norm_v, coverage, pos_coverage, neg_coverage, pos_ratio]
+        index += 1
+
+    np.save(args.output, results)
 
 
 if __name__ == "__main__":

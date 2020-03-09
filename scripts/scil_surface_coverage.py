@@ -28,7 +28,8 @@ References:
     Surface-enhanced tractography (SET). NeuroImage.
 """
 
-EPS = 0.0
+EPS = 1.0e-8
+REACHED = 0.5
 
 
 def buildArgsParser():
@@ -52,7 +53,7 @@ def buildArgsParser():
 
     p.add_argument('--norm_to', nargs='+', type=float,  default=[1000000])
 
-    p.add_argument('--print', action='store_true')
+    p.add_argument('--nb_resampling', type=int, default=10)
 
     add_overwrite_arg(p)
     return p
@@ -73,55 +74,56 @@ def main():
 
     init_scalar_sum = float(init_scalar.sum())
 
-    # for each normalization term (Streamlines count)
-    if args.print:
-        print(("norm", " :", "coverage", "pos_coverage", "neg_coverage", "global pos_ratio"))
-
-
-    results = np.zeros([len(args.norm_to), 5])
-
     index = 0
-    for norm_v in args.norm_to:
-        vts_scalar = init_scalar*norm_v/init_scalar_sum
+    results = np.zeros([len(args.norm_to), 5])
+    if args.nb_resampling is None:
+        for norm_v in args.norm_to:
 
-        surface_type = np.load(args.surface_type)
-        surface_mask_type = np.zeros_like(surface_type, dtype=np.bool)
-        for i in args.surface_type_to_use:
-            surface_mask_type = np.logical_or(surface_mask_type, surface_type == i)
+            surface_type = np.load(args.surface_type)
+            surface_mask_type = np.zeros_like(surface_type, dtype=np.bool)
+            for i in args.surface_type_to_use:
+                surface_mask_type = np.logical_or(surface_mask_type, surface_type == i)
 
-        surface_mask = np.load(args.surface_mask)
-        vts_mask = np.logical_and(surface_mask_type, surface_mask)
+            surface_mask = np.load(args.surface_mask)
+            vts_mask = np.logical_and(surface_mask_type, surface_mask)
 
-        nb_vts_in_wm = np.count_nonzero(vts_mask)
-        nb_vts_in_wm_reached = np.count_nonzero(vts_scalar[vts_mask] >= 1.0)
+            cotan_curv = mesh.vertices_cotan_curvature(area_weighted=True)
+            pos_curv = cotan_curv < EPS
+            neg_curv = cotan_curv > EPS
 
-        # coverage
-        coverage = float(nb_vts_in_wm_reached) / float(nb_vts_in_wm)
+            nb_vts_in_wm = np.count_nonzero(vts_mask)
+            nb_vts_in_pos_curv = np.count_nonzero(np.logical_and(vts_mask, pos_curv))
+            nb_vts_in_neg_curv = np.count_nonzero(np.logical_and(vts_mask, neg_curv))
 
-        curv_normal_mtx = mesh.mean_curvature_normal_matrix(area_weighted=True)
-        direction = curv_normal_mtx.dot(mesh.get_vertices())
-        normal_dir = mesh.vertices_normal(normalize=False)
-        pos_curv = dot(direction, normal_dir, axis=1) < EPS
-        neg_curv = dot(direction, normal_dir, axis=1) > EPS
+            cov_list = []
+            pos_list = []
+            neg_list = []
+            ratio_list = []
+            for i in range(args.nb_resampling):
+                randint = np.random.choice(len(init_scalar), int(norm_v), p=(init_scalar/init_scalar_sum))
 
-        nb_vts_in_pos_curv = np.count_nonzero(np.logical_and(vts_mask, pos_curv))
-        nb_vts_in_pos_curv_reached = np.count_nonzero(vts_scalar[np.logical_and(vts_mask, pos_curv)] >= 1.0)
+                vts_scalar = np.bincount(randint, minlength=len(init_scalar))
+                nb_vts_in_wm_reached = np.count_nonzero(vts_scalar[vts_mask])
 
-        nb_vts_in_neg_curv = np.count_nonzero(np.logical_and(vts_mask, neg_curv))
-        nb_vts_in_neg_curv_reached = np.count_nonzero(vts_scalar[np.logical_and(vts_mask, neg_curv)] >= 1.0)
+                cov_list.append(float(nb_vts_in_wm_reached) / float(nb_vts_in_wm))
 
-        pos_coverage= float(nb_vts_in_pos_curv_reached)/float(nb_vts_in_pos_curv)
-        neg_coverage = float(nb_vts_in_neg_curv_reached)/float(nb_vts_in_neg_curv)
+                nb_vts_in_pos_curv_reached = np.count_nonzero(vts_scalar[np.logical_and(vts_mask, pos_curv)])
+                nb_vts_in_neg_curv_reached = np.count_nonzero(vts_scalar[np.logical_and(vts_mask, neg_curv)])
 
-        nb_pos_curv = vts_scalar[np.logical_and(vts_mask, pos_curv)].sum()
-        nb_neg_curv = vts_scalar[np.logical_and(vts_mask, neg_curv)].sum()
-        pos_ratio = float(nb_pos_curv)/float(nb_pos_curv+nb_neg_curv)
+                pos_list.append(float(nb_vts_in_pos_curv_reached)/float(nb_vts_in_pos_curv))
+                neg_list.append(float(nb_vts_in_neg_curv_reached)/float(nb_vts_in_neg_curv))
 
-        if args.print:
-            print((norm_v, " :", coverage, pos_coverage, neg_coverage, pos_ratio))
+                nb_pos_curv = vts_scalar[np.logical_and(vts_mask, pos_curv)].sum()
+                nb_neg_curv = vts_scalar[np.logical_and(vts_mask, neg_curv)].sum()
+                ratio_list.append(float(nb_pos_curv)/float(nb_pos_curv+nb_neg_curv))
 
-        results[index] = [norm_v, coverage, pos_coverage, neg_coverage, pos_ratio]
-        index += 1
+            coverage = np.mean(cov_list)
+            pos_coverage = np.mean(pos_list)
+            neg_coverage = np.mean(neg_list)
+            pos_ratio = np.mean(ratio_list)
+
+            results[index] = [norm_v, coverage, pos_coverage, neg_coverage, pos_ratio]
+            index += 1
 
     np.save(args.output, results)
 

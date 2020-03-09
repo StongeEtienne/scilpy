@@ -12,7 +12,7 @@ SUPPORTED_VTK_EXTENSIONS = [".vtk", ".vtp", ".ply", ".stl", ".xml", ".obj"]
 
 
 def load_mesh_from_file(mesh_file, mesh_assert=False):
-    file_extension = splitext(mesh_file)[1].lower()
+    file_extension = splitext(mesh_file)[-1].lower()
     if file_extension in SUPPORTED_VTK_EXTENSIONS:
         return load_mesh_with_vtk(mesh_file, mesh_assert=mesh_assert)
     else:

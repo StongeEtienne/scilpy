@@ -5,8 +5,8 @@ import argparse
 
 import numpy as np
 from dipy.utils.optpkg import optional_package
+from trimeshpy.io import load_mesh_from_file
 
-from scilpy.io.surface import load_mesh_from_file
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)

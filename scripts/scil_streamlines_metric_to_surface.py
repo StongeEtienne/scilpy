@@ -6,8 +6,8 @@ from dipy.io.streamline import load_tractogram
 from dipy.tracking.streamlinespeed import length
 import numpy as np
 from dipy.io.utils import get_reference_info
+from trimeshpy.io import load_mesh_from_file
 
-from scilpy.io.surface import load_mesh_from_file
 from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exist,
                              add_overwrite_arg)
 from scilpy.tractanalysis.todi_util import streamlines_to_endpoints

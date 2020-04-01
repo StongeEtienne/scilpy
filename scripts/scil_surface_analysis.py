@@ -113,7 +113,7 @@ def main():
     index = 0
     results = np.zeros([len(args.coverage_with), 5])
     for norm_v in args.coverage_with:
-        out_list = np.zeros([args.nb_resampling, 4], dtype=np.float)
+        out_list = np.zeros([args.coverage_nb_resample, 4], dtype=np.float)
         for i in range(args.coverage_nb_resample):
             # Randomly choose endpoints
             randint = np.random.choice(len(init_scalar), int(norm_v), p=(init_scalar / init_scalar_sum))

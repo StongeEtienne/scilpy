@@ -111,7 +111,7 @@ def main():
     nb_vts_in_neg_curv = np.count_nonzero(neg_curv_mask)
 
     index = 0
-    results = np.zeros([len(args.norm_to), 5])
+    results = np.zeros([len(args.coverage_with), 5])
     for norm_v in args.coverage_with:
         out_list = np.zeros([args.nb_resampling, 4], dtype=np.float)
         for i in range(args.coverage_nb_resample):

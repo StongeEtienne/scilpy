@@ -32,8 +32,8 @@ def buildArgsParser():
     p = argparse.ArgumentParser(description=DESCRIPTION, epilog=EPILOG,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
-    p.add_argument('denity',
-                   help='Input density map(.npy)')
+    p.add_argument('density',
+                   help='Input density map (.npy)')
 
     p.add_argument('surfaces',
                    help='Input surfaces (.vtk)')

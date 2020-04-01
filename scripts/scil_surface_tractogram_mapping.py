@@ -48,7 +48,7 @@ def buildArgsParser():
                    help="Surface intersections file (.npy)")
 
     p.add_argument('output_vts_count',
-                   help="Surface output_vts_count  (.npy)")
+                   help="Surface output_vts_count (.npy)")
 
     p.add_argument('--max_distance', type=float, default=2.0,
                    help='Maximum distance (mm) for the closest point search')

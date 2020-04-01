@@ -70,10 +70,10 @@ def main():
 
     # Load mesh
     mesh = TriMesh_Vtk(args.surface, None)
-    if args.coverage_is_vts:
-        init_scalar = np.load(args.coverage_map).astype(np.float)
+    if args.density_is_vts:
+        init_scalar = np.load(args.set_density).astype(np.float)
     else:
-        tri_scalar = np.load(args.coverage_map).astype(np.float)
+        tri_scalar = np.load(args.set_density).astype(np.float)
         tv_map = mesh.triangle_vertex_map()
         init_scalar = np.squeeze(np.asarray(tv_map.T.dot(tri_scalar.T)))  # /3.0
 
@@ -95,8 +95,8 @@ def main():
     cotan_curv_in_mask = cotan_curv[vts_mask]
 
     # Save local curvatures and vts weight
-    np.save(args.curvature_vts_out, cotan_curv_in_mask)
-    np.save(args.curvature_weight_out, curv_scalar)
+    np.save(args.vts_curvature_out, cotan_curv_in_mask)
+    np.save(args.vts_weight_out, curv_scalar)
 
     # initial density sum
     init_scalar_sum = float(init_scalar.sum())
@@ -112,42 +112,41 @@ def main():
 
     index = 0
     results = np.zeros([len(args.norm_to), 5])
-    if args.nb_resampling is None:
-        for norm_v in args.norm_to:
-            out_list = np.zeros([args.nb_resampling, 4], dtype=np.float)
-            for i in range(args.nb_resampling):
-                # Randomly choose endpoints
-                randint = np.random.choice(len(init_scalar), int(norm_v), p=(init_scalar / init_scalar_sum))
+    for norm_v in args.coverage_with:
+        out_list = np.zeros([args.nb_resampling, 4], dtype=np.float)
+        for i in range(args.coverage_nb_resample):
+            # Randomly choose endpoints
+            randint = np.random.choice(len(init_scalar), int(norm_v), p=(init_scalar / init_scalar_sum))
 
-                # Density and count based on the sampling
-                vts_scalar = np.bincount(randint, minlength=len(init_scalar))
-                nb_vts_in_wm_reached = np.count_nonzero(vts_scalar[vts_mask])
+            # Density and count based on the sampling
+            vts_scalar = np.bincount(randint, minlength=len(init_scalar))
+            nb_vts_in_wm_reached = np.count_nonzero(vts_scalar[vts_mask])
 
-                # Coverage percentage
-                out_list[i, 0] = float(nb_vts_in_wm_reached) / float(nb_vts_in_wm)
+            # Coverage percentage
+            out_list[i, 0] = float(nb_vts_in_wm_reached) / float(nb_vts_in_wm)
 
-                # Curvature count
-                pos_scalar = vts_scalar[pos_curv_mask]
-                neg_scalar = vts_scalar[pos_curv_mask]
-                nb_vts_in_pos_curv_reached = np.count_nonzero(pos_scalar)
-                nb_vts_in_neg_curv_reached = np.count_nonzero(neg_scalar)
+            # Curvature count
+            pos_scalar = vts_scalar[pos_curv_mask]
+            neg_scalar = vts_scalar[pos_curv_mask]
+            nb_vts_in_pos_curv_reached = np.count_nonzero(pos_scalar)
+            nb_vts_in_neg_curv_reached = np.count_nonzero(neg_scalar)
 
-                # Curvature percentage
-                out_list[i, 1] = float(nb_vts_in_pos_curv_reached) / float(nb_vts_in_pos_curv)
-                out_list[i, 2] = float(nb_vts_in_neg_curv_reached) / float(nb_vts_in_neg_curv)
+            # Curvature percentage
+            out_list[i, 1] = float(nb_vts_in_pos_curv_reached) / float(nb_vts_in_pos_curv)
+            out_list[i, 2] = float(nb_vts_in_neg_curv_reached) / float(nb_vts_in_neg_curv)
 
-                # Curvature ratio
-                nb_pos_curv = pos_scalar.sum()
-                nb_neg_curv = neg_scalar.sum()
-                out_list[i, 3] = float(nb_pos_curv) / float(nb_pos_curv + nb_neg_curv)
+            # Curvature ratio
+            nb_pos_curv = pos_scalar.sum()
+            nb_neg_curv = neg_scalar.sum()
+            out_list[i, 3] = float(nb_pos_curv) / float(nb_pos_curv + nb_neg_curv)
 
-            result_i = np.mean(out_list, axis=0)
+        result_i = np.mean(out_list, axis=0)
 
-            results[index, 0] = norm_v
-            results[index, 1:] = result_i
-            index += 1
+        results[index, 0] = norm_v
+        results[index, 1:] = result_i
+        index += 1
 
-    np.save(args.output, results)
+    np.save(args.coverage_out, results)
 
 
 if __name__ == "__main__":

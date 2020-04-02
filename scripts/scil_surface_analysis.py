@@ -24,8 +24,7 @@ References:
     Surface-enhanced tractography (SET). NeuroImage.
 """
 
-EPS = 0.000001
-REACHED = 0.5
+EPS = 1.0e-6
 
 
 def buildArgsParser():
@@ -127,7 +126,7 @@ def main():
 
             # Curvature count
             pos_scalar = vts_scalar[pos_curv_mask]
-            neg_scalar = vts_scalar[pos_curv_mask]
+            neg_scalar = vts_scalar[neg_curv_mask]
             nb_vts_in_pos_curv_reached = np.count_nonzero(pos_scalar)
             nb_vts_in_neg_curv_reached = np.count_nonzero(neg_scalar)
 

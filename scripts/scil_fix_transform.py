@@ -14,6 +14,7 @@ to the original input image.
 import argparse
 
 import nibabel as nib
+import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist)
@@ -44,12 +45,16 @@ def main():
 
     nib_file = nib.load(args.in_file)
     if args.transform_to_use == "sform":
-        transfo = nib_file.get_sform()
+        transfo = np.copy(nib_file.get_sform())
+        nib_file.set_qform(np.eye(4), 0)
+        nib_file.set_sform(transfo, 2)
     else:
-        transfo = nib_file.get_qform()
+        transfo = np.copy(nib_file.get_qform())
+        nib_file.set_qform(np.eye(4), 0)
+        nib_file.set_sform(transfo, 2)
 
-    new_nib = nib.Nifti1Image(nib_file.get_data(), transfo)
-    nib.save(new_nib, args.out_file)
+    #new_nib = nib.Nifti1Image(nib_file.get_data(), transfo)
+    nib.save(nib_file, args.out_file)
 
 
 if __name__ == "__main__":

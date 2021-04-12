@@ -2,15 +2,11 @@
 # -*- coding: utf-8 -*-
 
 """
-Compute the statistics (mean, std) of scalar maps, which can represent
-diffusion metrics, in a ROI.
+Compute the statistics average for multiples scalar maps in each ROI.
+Masks (ROI) can either be a binary mask, or a weighting mask (PVE maps).
 
-The mask can either be a binary mask, or a weighting mask. If the mask is
-a weighting mask it should either contain floats between 0 and 1 or should be
-normalized with --normalize_weights.
-
-IMPORTANT: if the mask contains weights (and not 0 and 1 exclusively), the
-standard deviation will also be weighted.
+IMPORTANT: if the mask contains weights >= 0,
+With json output the standard deviation is also computed and weighted.
 """
 
 import argparse
@@ -35,7 +31,7 @@ def _build_arg_parser():
                                 formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_masks', nargs='+',
-                   help='Masks volume filename.\nCan be a binary mask or a '
+                   help='Masks volume filename (ROI).\nCan be a binary mask or a '
                         'weighted mask.')
 
     p.add_argument('--metrics', nargs='+', required=True,
@@ -47,7 +43,8 @@ def _build_arg_parser():
                         '(similar to vox count)')
 
     p.add_argument('--save_avg',
-                   help='Save all average to a file (txt, numpy)')
+                   help='Save all average to a file (txt, npy, json)\n'
+                        'Otherwise it print the average in ')
 
     add_overwrite_arg(p)
     add_json_args(p)

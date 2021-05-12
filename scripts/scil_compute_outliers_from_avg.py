@@ -11,16 +11,12 @@ With json output the standard deviation is also computed and weighted.
 
 import argparse
 import io
-import nibabel as nib
 import numpy as np
 from scipy.stats import zscore
 
 from scilpy.io.utils import (add_overwrite_arg,
                              add_json_args,
-                             assert_inputs_exist,
-                             assert_outputs_exist)
-from scilpy.utils.filenames import split_name_with_nii
-from scilpy.utils.metrics_tools import weighted_mean_std
+                             assert_inputs_exist)
 
 
 def _build_arg_parser():

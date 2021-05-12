@@ -65,8 +65,11 @@ def main():
     for f in all_files:
         f_type = f.split(".")[-1]
         if f_type == "txt":
-            s = io.BytesIO(open(f, 'rb').read().replace(b';', b'\n'))
-            data = np.loadtxt(s, dtype=float, delimiter=",")
+            s = io.BytesIO(open(f, 'rb').read().replace(b';', b'\n')).readlines()
+            if s:
+                data = np.loadtxt(s, dtype=float, delimiter=",")
+            else:
+                data = np.empty(shape=(0, 0))
         elif f_type == "csv":
             data = np.loadtxt(f, dtype=float, delimiter=",")
         elif f_type == "csv":
@@ -77,14 +80,17 @@ def main():
         else:
             non_empty_files.append(f)
             non_empty_avg.append(data)
+
     full_avg = np.stack(non_empty_avg)
     full_zscore = zscore(full_avg, axis=0)
-    print(full_zscore[1, 2, 3])
     full_abs_zscore = np.abs(full_zscore)
     err_mask = full_abs_zscore > args.zscore_error
     warn_mask = np.logical_and(full_abs_zscore > args.zscore_warning, np.logical_not(err_mask))
     error_list = np.argwhere(err_mask)
     warn_list = np.argwhere(warn_mask)
+
+    for f in empty_files:
+        print(f"Empty file, {f}")
 
     for (id, row, col) in error_list:
         f_name = non_empty_files[id]
@@ -103,10 +109,6 @@ def main():
         if args.metrics_name:
             col = args.metrics_name[col]
         print(f"Warning, {f_name}, in {row} with {col}, zscore : {z}")
-    #print(error_list)
-    #print(warn_list)
-
-
 
 
 if __name__ == "__main__":

@@ -48,13 +48,15 @@ def streamlines_to_endpoints(streamlines):
     return endpoints
 
 
-def streamlines_to_pts_dir_norm(streamlines):
+def streamlines_to_pts_dir_norm(streamlines, remove_zero_length=True):
     """Evaluate each segment: mid position, direction, length.
 
     Parameters
     ----------
     streamlines :  list of numpy.ndarray
         List of streamlines.
+    remove_zero_length :  bool
+        If enabled, remove near zero length segments
 
     Returns
     -------
@@ -68,6 +70,11 @@ def streamlines_to_pts_dir_norm(streamlines):
     segments = streamlines_to_segments(streamlines)
     seg_mid = get_segments_mid_pts_positions(segments)
     seg_dir, seg_norm = get_segments_dir_and_norm(segments)
+
+    if remove_zero_length:
+        mask = seg_norm > 1.0e-24
+        return seg_mid[mask], seg_dir[mask], seg_norm[mask]
+
     return seg_mid, seg_dir, seg_norm
 
 

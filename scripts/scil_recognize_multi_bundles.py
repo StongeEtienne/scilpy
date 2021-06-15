@@ -69,15 +69,19 @@ def _build_arg_parser():
                    help='Path of the config file (.json)')
     p.add_argument('in_models_directories', nargs='+',
                    help='Path for the directories containing model.')
-    p.add_argument('in_transfo',
-                   help='Path for the transformation to model space '
-                        '(.txt, .npy or .mat).')
 
     p.add_argument('--out_dir', default='voting_results',
                    help='Path for the output directory [%(default)s].')
     p.add_argument('--log_level', default='INFO',
                    choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
                    help='Log level of the logging class.')
+
+    p.add_argument('--in_transfo',
+                   help='Path for the transformation to model space '
+                        '(.txt, .npy or .mat).')
+
+    p.add_argument('--nb_points', type=int, default=20,
+                   help='Number of points per streamlines [%(default)s]')
 
     p.add_argument('--multi_parameters', type=int, default=1,
                    help='Pick parameters from the potential combinations\n'
@@ -107,9 +111,8 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_tractogram,
-                                 args.in_config_file,
-                                 args.in_transfo])
+    assert_inputs_exist(parser, [args.in_tractogram, args.in_config_file],
+                        optional=[args.in_transfo])
 
     for directory in args.in_models_directories:
         if not os.path.isdir(directory):
@@ -124,9 +127,12 @@ def main():
 
     coloredlogs.install(level=args.log_level)
 
-    transfo = load_matrix_in_any_format(args.in_transfo)
-    if args.inverse:
-        transfo = np.linalg.inv(load_matrix_in_any_format(args.in_transfo))
+    if args.in_transfo:
+        transfo = load_matrix_in_any_format(args.in_transfo)
+        if args.inverse:
+            transfo = np.linalg.inv(load_matrix_in_any_format(args.in_transfo))
+    else:
+        transfo = np.eye(4)
 
     with open(args.in_config_file) as json_data:
         config = json.load(json_data)
@@ -135,7 +141,8 @@ def main():
                           transfo, args.out_dir,
                           tractogram_clustering_thr=args.tractogram_clustering_thr,
                           minimal_vote_ratio=args.minimal_vote_ratio,
-                          multi_parameters=args.multi_parameters)
+                          multi_parameters=args.multi_parameters,
+                          nb_points=args.nb_points)
 
     if args.seeds is None:
         seeds = [random.randint(1, 1000)]

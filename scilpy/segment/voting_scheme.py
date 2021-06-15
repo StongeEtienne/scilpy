@@ -412,9 +412,12 @@ def single_clusterize_and_rbx_init(args):
                                                clusters_indices, centroids,
                                                nb_points=nb_points,
                                                rng=rng)
+    cluster_timer2 = time()
+    print(cluster_timer2-cluster_timer)
+
     logging.info('QBx with seed {0} at {1}mm took {2}sec. gave '
                  '{3} centroids'.format(seed, current_thr_list,
-                                        round(time() - cluster_timer, 2),
+                                        round(cluster_timer2 - cluster_timer, 2),
                                         len(cluster_map.centroids)))
     return rbx
 
@@ -478,6 +481,8 @@ def single_recognize(args):
                                        bundle_pruning_thr=bpt,
                                        slr_transform_type=slr_transform_type,
                                        identifier=shorter_tag)
+    recognize_timer2 = time()
+    print(recognize_timer2-recognize_timer)
 
     logging.info('Model {0} recognized {1} streamlines'.format(
                  shorter_tag, len(recognized_indices)))
@@ -485,7 +490,7 @@ def single_recognize(args):
                   'tct={2}, mct={3}, bpt={4} '
                   'took {5} sec.'.format(shorter_tag, seed,
                                          tct, mct, bpt,
-                                         round(time() - recognize_timer, 2)))
+                                         round(recognize_timer2 - recognize_timer, 4)))
     if recognized_indices is None:
         recognized_indices = []
     return bundle_id, np.asarray(recognized_indices, dtype=np.int)

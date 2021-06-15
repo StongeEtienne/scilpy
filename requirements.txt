@@ -7,7 +7,7 @@ fury==0.7.*
 future==0.17.*
 h5py==2.10.*
 kiwisolver==1.0.*
-matplotlib==2.2.*
+matplotlib==3.4.*
 nibabel==3.0.*
 nilearn==0.6.*
 numpy==1.20.*

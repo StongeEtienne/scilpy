@@ -80,7 +80,7 @@ def _build_arg_parser():
                    help='Path for the transformation to model space '
                         '(.txt, .npy or .mat).')
 
-    p.add_argument('--nb_points', type=int, default=20,
+    p.add_argument('--nb_points', type=int, default=12,
                    help='Number of points per streamlines [%(default)s]')
 
     p.add_argument('--multi_parameters', type=int, default=1,

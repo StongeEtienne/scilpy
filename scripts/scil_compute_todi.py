@@ -60,6 +60,9 @@ def _build_arg_parser():
     p.add_argument('--out_todi_sh',
                    help='Output TODI, with SH coefficients.')
 
+    p.add_argument('--out_dist',
+                   help='Output DIST map.')
+
     p.add_argument('--sh_order', type=int, default=8,
                    help='Order of the original SH. [%(default)s]')
 
@@ -115,6 +118,12 @@ def main():
         todi_obj.mask_todi(mask)
 
     logging.info('Saving Outputs ...')
+    if args.out_dist:
+        img = todi_obj.get_dist(sft.streamlines)
+        img = todi_obj.reshape_to_3d(img)
+        img = nib.Nifti1Image(img.astype(np.float32), affine)
+        img.to_filename(args.out_dist)
+
     if args.out_mask:
         data = todi_obj.get_mask()
         img = todi_obj.reshape_to_3d(data)
@@ -140,6 +149,7 @@ def main():
         img = todi_obj.reshape_to_3d(img)
         img = nib.Nifti1Image(img.astype(np.float32), affine)
         img.to_filename(args.out_todi_sf)
+
 
 
 if __name__ == '__main__':

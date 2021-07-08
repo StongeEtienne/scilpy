@@ -3,6 +3,7 @@ import numpy as np
 from numpy.linalg import norm
 from scipy.spatial.ckdtree import cKDTree
 
+MINSEGLENGTH = 1.0e-24
 
 def streamlines_to_segments(streamlines):
     """Split streamlines into its segments.
@@ -72,10 +73,41 @@ def streamlines_to_pts_dir_norm(streamlines, remove_zero_length=True):
     seg_dir, seg_norm = get_segments_dir_and_norm(segments)
 
     if remove_zero_length:
-        mask = seg_norm > 1.0e-24
+        mask = seg_norm > MINSEGLENGTH
         return seg_mid[mask], seg_dir[mask], seg_norm[mask]
 
     return seg_mid, seg_dir, seg_norm
+
+
+def streamlines_to_pts_ids_norm(streamlines, remove_zero_length=True):
+    """Evaluate each segment: mid position, direction, length.
+
+    Parameters
+    ----------
+    streamlines :  list of numpy.ndarray
+        List of streamlines.
+    remove_zero_length :  bool
+        If enabled, remove near zero length segments
+
+    Returns
+    -------
+    seg_mid : numpy.ndarray (2D)
+        Mid position (x,y,z) of all streamlines' segments.
+    seg_dir : numpy.ndarray (2D)
+        Direction (x,y,z) of all streamlines' segments.
+    seg_norm : numpy.ndarray (2D)
+        Length of all streamlines' segments.
+    """
+    segments = streamlines_to_segments(streamlines)
+    seg_mid = get_segments_mid_pts_positions(segments)
+    _, seg_norm = get_segments_dir_and_norm(segments)
+    indices = get_segments_indices(streamlines)
+
+    if remove_zero_length:
+        mask = seg_norm > MINSEGLENGTH
+        return seg_mid[mask], indices[mask], seg_norm[mask]
+
+    return seg_mid, indices, seg_norm
 
 
 def get_segments_mid_pts_positions(segments):
@@ -109,6 +141,13 @@ def generate_mask_indices_1d(nb_voxel, indices_1d):
 
 def get_indices_1d(volume_shape, pts):
     return np.ravel_multi_index(pts.T.astype(np.int), volume_shape)
+
+
+def get_segments_indices(streamlines):
+    all_ids = []
+    for streamline in streamlines:
+        all_ids.append(np.arange(len(streamline) - 1))
+    return np.hstack(all_ids)
 
 
 def get_dir_to_sphere_id(vectors, sphere_vertices):

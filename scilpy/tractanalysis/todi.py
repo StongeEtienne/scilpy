@@ -96,6 +96,41 @@ class TrackOrientationDensityImaging(object):
         # Bincount of sphere id for each voxel
         self.todi = todi_bin_1d.reshape(todi_bin_shape)
 
+    def get_dist(self, streamlines, ):
+        """Compute the DIST map.
+
+        At each voxel an averaged geo distance of
+        the local streamlines orientations (DIST) is computed.
+
+        Parameters
+        ----------
+        streamlines : list of numpy.ndarray
+            List of streamlines.
+        """
+        assert(self.mask is not None)
+
+        # Streamlines vertices in "VOXEL_SPACE" within "img_shape" range
+        pts_pos, pts_ids, pts_norm = \
+            todi_u.streamlines_to_pts_ids_norm(streamlines)
+
+        pts_w = pts_ids * pts_norm
+        # Get voxel indices for each point
+        pts_unmasked_vox = todi_u.get_indices_1d(self.img_shape, pts_pos)
+
+        # Generate mask from streamlines vertices
+        mask_vox_lut = np.cumsum(self.mask) - 1
+        dist_bin_len = mask_vox_lut[-1] + 1
+        pts_vox = mask_vox_lut[pts_unmasked_vox]
+
+        # Bincount of each direction at each voxel position
+
+        dist_bin_1d = np.bincount(pts_vox, weights=pts_w, minlength=dist_bin_len)
+        sum_bin_1d = np.bincount(pts_vox, weights=pts_norm, minlength=dist_bin_len)
+        dist_bin_1d /= sum_bin_1d
+
+        # Bincount of sphere id for each voxel
+        return dist_bin_1d.reshape(dist_bin_len)
+
     def get_todi(self):
         return self.todi
 

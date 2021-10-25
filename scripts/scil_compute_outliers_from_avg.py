@@ -34,10 +34,9 @@ def _build_arg_parser():
 
     p.add_argument('--masks_name', nargs='+',
                    help='name for the vals')
+
     p.add_argument('--metrics_name', nargs='+',
                    help='name for the vals')
-
-
 
     add_overwrite_arg(p)
     add_json_args(p)
@@ -86,8 +85,9 @@ def main():
     warn_list = np.argwhere(warn_mask)
 
     for f in empty_files:
-        print(f"Empty file, {f}")
+        print("Empty file," + str(f))
 
+    id_err = []
     for (id, row, col) in error_list:
         f_name = non_empty_files[id]
         z = full_zscore[id, row, col]
@@ -96,7 +96,9 @@ def main():
         if args.metrics_name:
             col = args.metrics_name[col]
         print(f"Error, {f_name}, in {row} with {col}, zscore : {z}")
+        id_err.append(id)
 
+    id_warn = []
     for (id, row, col) in warn_list:
         f_name = non_empty_files[id]
         z = full_zscore[id, row, col]
@@ -105,6 +107,17 @@ def main():
         if args.metrics_name:
             col = args.metrics_name[col]
         print(f"Warning, {f_name}, in {row} with {col}, zscore : {z}")
+        id_warn.append(id)
+
+    nb_sub = len(args.averages)
+    nb_with_err = len(np.unique(id_err))
+    nb_with_warn = len(np.unique(id_warn))
+    nb_with_err_or_warn = len(np.unique(id_err+id_warn))
+
+    print(f"{nb_with_err} subjects with error ( ~{100.0*nb_with_err/nb_sub:.1f}% )")
+    print(f"{nb_with_warn} subjects with warning ( ~{100.0*nb_with_warn/nb_sub:.1f}% )")
+    print(f"Total of {nb_with_err_or_warn} subjects with error or warning,"
+          f" from {len(args.averages)} subjects ( ~{100.0*nb_with_err_or_warn/nb_sub:.1f}% )")
 
 
 if __name__ == "__main__":
